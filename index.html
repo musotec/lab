@@ -1005,12 +1005,19 @@
             return -2
           }
 
+          // when keyboard is emulated, use subset of arrow keys for dpad only
+          for (var i = 0; i < 4; i++) {
+            if (keyCode == emuKeyboradMapping[i]) {
+              return i
+            }
+          }
+
           return -1
         }
 
         function convertKeyCode(keyCode) {
             if (config.useKeyboard) {
-              return emuTouchForKeyCode(keyCode)
+               return emuTouchForKeyCode(keyCode)
             }
 
             for (var i = 0; i < 14; i++) {
