@@ -164,6 +164,8 @@
         <label for="power-save">Power-save mode (keep this on)</label><br>
         <input type="checkbox" id="vk-enabled">
         <label for="vk-enabled">Virtual buttons on Bottom</label><br>
+        <input type="checkbox" id="emu-keys">
+        <label for="emu-keys">Emulate Keyboard (WIP)</label><br>
         <input type="checkbox" id="fps-show">
         <label for="fps-show">Show FPS</label>
         <hr>
@@ -192,6 +194,7 @@
             showFps: false,
             micWhenR: true,
             vkEnabled: true,
+            useKeyboard: true,
         }
 
         function loadConfig() {
@@ -202,6 +205,7 @@
             $id('power-save').checked = config.powerSave
             $id('vk-enabled').checked = config.vkEnabled
             $id('fps-show').checked = config.showFps
+            $id('emu-keys').checked = config.useKeyboard
         }
         loadConfig()
 
@@ -209,6 +213,7 @@
             config.powerSave = !!($id('power-save').checked)
             config.vkEnabled = !!($id('vk-enabled').checked)
             config.showFps = !!($id('fps-show').checked)
+            config.useKeyboard = !!($id('emu-keys').checked)
             window.localStorage['config'] = JSON.stringify(config)
         }
 
@@ -338,6 +343,7 @@
             }, 1000)
         }
 
+        var emuTouchState = 0 
         function emuRunFrame() {
             processGamepadInput()
             var keyMask = 0;
@@ -352,6 +358,11 @@
                 keyMask |= 1 << 14
             }
 
+            if (config.useKeyboard && emuTouchState > 0) {
+                emuTouchState = emuTouchState - 1
+                touched = emuTouchState % 2
+                console.log("emuKey["+emuTouchState+"]: (" + touchX + "," + touchY + ")")
+            }
 
             if (config.powerSave) {
                 Module._runFrame(0, keyMask, touched, touchX, touchY)
@@ -909,12 +920,99 @@
             touched = isDown ? 1 : 0;
             touchX = x
             touchY = y
+          if (e.type != 'mousemove') {
+            console.log("touch["+touched+"] (" + x +  "," + y + ")")
+          }
         }
 
         window.onresize = window.onorientationchange = () => {
             uiUpdateLayout()
         }
+
+        var keyLUT = [
+          'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 
+            'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 
+                'Z', 'X', 'C', 'V', 'B', 'N', 'M',
+        ];
+
+
+        // TODO: queue these in a buffer, accumulate emulated presses for repeats like backspace
+        function emuTouchForKeyCode(keyCode) {
+          // space: 162, 175; bs: 200, 175; hyph: 134, 175; enter: 238,175
+
+            /// Dev info: 
+            // Q starts :0 (34,64)  dx = 21
+            //  A start :1 (48,96)  ox =14, dy = 32
+            //    Z beg :2 (68,128) ox =20
+
+          // if enter
+          if (keyCode == 13) {
+            touchX = 238.
+            touchY = 175.
+            return -2
+          }
+          // if backspace
+          if (keyCode == 8) {
+            touchX = 200.
+            touchY = 175.
+            return -2
+          }
+          // if space
+          if (keyCode == 32) {
+            touchX = 162.
+            touchY = 175.
+            return -2
+          }
+          // if hyphen
+          if (keyCode == 45) {
+            touchX = 134.
+            touchY = 175.
+            return -2
+          }
+
+          // if between a - z
+          if (keyCode >= 65 && keyCode <= 90) {
+
+            // with QWERTY layout, most frequent keyline is 1,
+            // to reduce if statements, least frequent keys are on row 2
+            var row = 2
+            var keyPos = keyLUT.indexOf(String.fromCharCode(keyCode))
+
+            if (keyPos < 10) {
+              row = 0
+              col = keyPos
+            } else if (keyPos < 19) {
+              row = 1
+              col = keyPos - 10
+            } else {
+              col = keyPos - 19
+            }
+
+            // now process row/col
+
+            // even rows
+            if (row % 2 == 0) {
+              touchY = 64. + (row * 32.)    // 64 -x2> 128 
+              touchX = 34. + (row * 17.)    // 34 -x2> 68
+            } else {
+              // odd rows (1 only) use 96, 48 as start
+              touchY = 96.
+              touchX = 48.
+            }
+
+            // now add back in column with dx = 21
+            touchX = touchX + (col * 21.)
+            return -2
+          }
+
+          return -1
+        }
+
         function convertKeyCode(keyCode) {
+            if (config.useKeyboard) {
+              return emuTouchForKeyCode(keyCode)
+            }
+
             for (var i = 0; i < 14; i++) {
                 if (keyCode == emuKeyboradMapping[i]) {
                     return i
@@ -922,6 +1020,7 @@
             }
             return -1
         }
+
         window.onkeydown = window.onkeyup = (e) => {
             if (!emuIsRunning) {
                 return
@@ -932,7 +1031,10 @@
             if (k >= 0) {
                 emuKeyState[k] = isDown
             }
-            if (e.keyCode == 27) {
+            if (k == -2 && !isDown) {
+                emuTouchState = emuTouchState + 2
+            }
+            if (e.keyCode == 27) { // escape char
                 uiSwitchTo('menu')
             }
         }
