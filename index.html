@@ -361,6 +361,12 @@
             if (config.useKeyboard && emuTouchState > 0) {
                 emuTouchState = emuTouchState - 1
                 touched = emuTouchState % 2
+
+                // fifo pop a new coord when we press key (touched=1) 
+                if (touched == 1) {
+                    touchX = emuTouchBuffer.shift()
+                    touchY = emuTouchBuffer.shift()
+                }
                 console.log("emuKey["+emuTouchState+"]: (" + touchX + "," + touchY + ")")
             }
 
@@ -1027,7 +1033,8 @@
             }
             return -1
         }
-
+        
+        var emuTouchBuffer = []
         window.onkeydown = window.onkeyup = (e) => {
             if (!emuIsRunning) {
                 return
@@ -1040,6 +1047,8 @@
             }
             if (k == -2 && !isDown) {
                 emuTouchState = emuTouchState + 2
+                // push the touches to the buffer (retrieved when processing state)
+                emuTouchBuffer.push(touchX, touchY)
             }
             if (e.keyCode == 27) { // escape char
                 uiSwitchTo('menu')
