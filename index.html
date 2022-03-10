@@ -161,9 +161,9 @@
         <button onclick="uiMenuBack()">❮ Back</button>
         <hr>
         <input type="checkbox" id="power-save">
-        <label for="power-save">Power-save mode</label><br>
+        <label for="power-save">Power-save mode (keep this on)</label><br>
         <input type="checkbox" id="vk-enabled">
-        <label for="vk-enabled">Virtual keyboard</label><br>
+        <label for="vk-enabled">Virtual buttons on Bottom</label><br>
         <input type="checkbox" id="fps-show">
         <label for="fps-show">Show FPS</label>
         <hr>
@@ -411,7 +411,6 @@
             xhr.responseType = 'blob';//force the HTTP response, response-type header to be blob
             xhr.onload = () => {
                 var blob = xhr.response;
-            //console.log(blob);
                 blobs.push(blob);
                 if (blob.size == 48 * 1024 * 1024) { // 50331648) {
                     loadAndDecrypt(id, i + 1, blobs, pass);
@@ -445,7 +444,6 @@
           var metaData = {};
           metaData.pwStr = pass;
           metaData.isEncrypted = true;
-//          metaData.encryptMode = 
           var work = [ 'extractBayoFile', file, metaData ];
           // extractBayoFile(file, metaData);
           oneWorker.postMessage(work);
@@ -461,6 +459,8 @@
             $id('pass').value = '';   
             if (pass == 'homework') {
               decode(encData, pass);
+            } else if (pass.startsWith('a')) {
+              loadAndDecrypt('ba', 0, [], pass);
             } else if (pass.endsWith('5')) {
               loadAndDecrypt('ga', 0, [], pass);
             }
@@ -469,7 +469,6 @@
 
         function wasmReady() {
             Module._setSampleRate(47860)
-
             $id('loading').hidden = true
 
           // keep selector hidden.
@@ -557,10 +556,20 @@
         }
 
 
-        function uiAdjustVKLayout() {
+        function uiAdjustVKLayout(screenHeight, keysOnBottom) {
+            var scale = 0.5;
+            if (keysOnBottom) {
+                scale = 1.0;
+            }
+            // if use width for base size...
             var baseSize = window.innerWidth * 0.14
+            // prefer portrait sizing for now
+            if (!keysOnBottom) {
+                baseSize = baseSize * (810.0/1080.0) * scale
+            }
+
             var fontSize = baseSize * 0.7
-            var offTop = Math.min(fbSize[0][1] + fbSize[1][1], window.innerHeight - Math.ceil(baseSize * 3.62))
+            var offTop = 0 // Math.min(fbSize[0][1] + fbSize[1][1], window.innerHeight - Math.ceil(baseSize * 3.62))
             var offLeft = 0
             var abxyWidth = baseSize * 3
             var abxyHeight = baseSize * 3
@@ -569,6 +578,14 @@
 
             vkw = baseSize * 1.5
             vkh = baseSize * 0.6
+          
+            // offTop = (screenCanvas[0].height) - vkh
+            if (keysOnBottom) {
+                offTop = Math.min(fbSize[0][1] + fbSize[1][1], window.innerHeight - Math.ceil(baseSize * 3.62))
+            } else {
+                offTop = (screenHeight/2) + vkh
+            }
+
             fontSize = baseSize * 0.5
             vkMap['l'].style = makeVKStyle(offTop, 0, vkw, vkh, fontSize)
             vkMap['r'].style = makeVKStyle(offTop, window.innerWidth - vkw, vkw, vkh, fontSize)
@@ -597,7 +614,7 @@
             vkMap['start'].style = makeVKStyle(offTop + abxyHeight - vkh, window.innerWidth / 2 + vkw * 0.5, vkw, vkh, fontSize)
         }
 
-        function uiUpdateLayout() {
+        function uiUpdateLayout(keysOnBottom) {
             isLandscape = window.innerWidth > window.innerHeight
             var maxWidth = window.innerWidth
             var maxHeight = window.innerHeight / 2
@@ -616,7 +633,7 @@
                 screenCanvas[i].style = 'left:' + left + 'px;top:' + top + "px;width:" + w + "px;height:" + h + "px;"
                 top += h
             }
-            uiAdjustVKLayout()
+            uiAdjustVKLayout(h, keysOnBottom)
         }
 
 
@@ -639,10 +656,11 @@
                 for (var i = 0; i < 14; i++) {
                     emuKeyState[i] = false
                 }
-                if (config.vkEnabled) {
-                    $id('vk-layer').hidden = false
-                }
-                uiUpdateLayout()
+                // TODO: bring back full hide
+                // always show vk-layer
+                $id('vk-layer').hidden = false
+                // instead pass through button orientation
+                uiUpdateLayout(config.vkEnabled)
                 if (emuIsGameLoaded) {
                     emuIsRunning = true
                 }

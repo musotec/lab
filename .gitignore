@@ -1,1 +1,5 @@
 *.bayo
+*.nds
+*.png
+!icon.png
+
