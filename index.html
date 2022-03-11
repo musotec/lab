@@ -951,26 +951,51 @@
             //  A start :1 (48,96)  ox =14, dy = 32
             //    Z beg :2 (68,128) ox =20
 
+
+          // if period
+          if (keyCode == 190) {
+            // press-repeat last
+            touchX = 48.
+            touchY = 175.
+            return -2
+          }
+      
+          // if forward slash (/)
+          if (keyCode == 191) {
+            // open notebook
+            touchX = 238.
+            touchY = 24.
+            return -2
+          }
+          // if backtick      (`)
+          if (keyCode == 192) {
+            // close notebook
+            touchX = 14.
+            touchY = 175.
+            return -2
+          }
           // if enter
           if (keyCode == 13) {
+            // press submit (bottom right)
             touchX = 238.
             touchY = 175.
             return -2
           }
-          // if backspace
+
+          // do backspace
           if (keyCode == 8) {
             touchX = 200.
             touchY = 175.
             return -2
           }
-          // if space
+          // do space
           if (keyCode == 32) {
             touchX = 162.
             touchY = 175.
             return -2
           }
-          // if hyphen
-          if (keyCode == 45) {
+          // do hyphen
+          if (keyCode == 173) {
             touchX = 134.
             touchY = 175.
             return -2
@@ -994,20 +1019,12 @@
               col = keyPos - 19
             }
 
-            // now process row/col
+            // initialize with base coord for first key in row 
+            touchY = 64. + (row * 32.)    // 64, 96, 128  +32/row
+            touchX = 26. + (row * 16.)    // 34, 48, 68   +avg start end range from (25-75)/3 rows..
 
-            // even rows
-            if (row % 2 == 0) {
-              touchY = 64. + (row * 32.)    // 64 -x2> 128 
-              touchX = 34. + (row * 17.)    // 34 -x2> 68
-            } else {
-              // odd rows (1 only) use 96, 48 as start
-              touchY = 96.
-              touchX = 48.
-            }
-
-            // now add back in column with dx = 21
-            touchX = touchX + (col * 21.)
+            // now add in the column with dx = 22 (key size)
+            touchX = touchX + (col * 22.)
             return -2
           }
 
@@ -1036,10 +1053,11 @@
         
         var emuTouchBuffer = []
         window.onkeydown = window.onkeyup = (e) => {
-            if (!emuIsRunning) {
+            if (!emuIsRunning || e.keyCode == 123) { // allow F5(key=116) & F12(key=123) for debug   || e.keyCode == 116 ||  
                 return
             }
             e.preventDefault()
+            // console.log(e)
             var isDown = (e.type === "keydown")
             var k = convertKeyCode(e.keyCode)
             if (k >= 0) {
