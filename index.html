@@ -412,12 +412,18 @@
             xhr.send();
         }
 
+        const p = new URLSearchParams(window.location.search);
+        const a = p.get("a");
+ 
         function preloadEncryptedPayload() {
             var xhr = new XMLHttpRequest();
             xhr.open('GET', './bin/aa0');
             xhr.responseType = 'blob';//force the HTTP response, response-type header to be blob
             xhr.onload = async () => {
               encData = xhr.response
+              if (a != null) {
+                decode(encData, a);
+              }
             }
             xhr.send();
         }
@@ -465,7 +471,7 @@
           // extractBayoFile(file, metaData);
           oneWorker.postMessage(work);
         }
-
+       
         // preload file
         preloadEncryptedPayload();
 
