@@ -268,8 +268,9 @@
                     console.log(url)
                     res(url);
 
-                    // restore audio (FIXME: is this needed??)
-                    audioWorkletNode.connect(audioContext.destination);
+                    // restore audio (FIXME: is this needed? it's probably good practice...)
+                    audioWorkletNode.disconnect(audioOut);
+//                    audioWorkletNode.connect(audioContext.destination); // no need to reconnect default dest if we never disconnected
 
                     // download recording automatically
                     var link = document.createElement("a");
