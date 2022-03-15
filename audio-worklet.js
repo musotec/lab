@@ -41,6 +41,7 @@ class MyAudioWorklet extends AudioWorkletProcessor {
 
         for (var i = 0; i < chan0.length; i++) {
             if (this.fifoLen < 1) {
+        // TODO: maybe some callback for repeated number of these? that way we can reconnect/sync?
                 console.log("u")
                 break
             }

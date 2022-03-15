@@ -174,6 +174,9 @@
             Save Data: <button onclick="uiSaveBackup()">↓ Export</button>|<button onclick="$id('restore-file').click()">↑ Import</button>
             <hr>
         </div>
+        <div id="menu-record">
+            <button onclick="uiMenuRecord()">Record</button>
+        </div>
     </div>
     <div id="player" hidden>
         <canvas id="top" width="256" height="192"></canvas>
@@ -217,7 +220,90 @@
             window.localStorage['config'] = JSON.stringify(config)
         }
 
-        
+        var mediaRecorder;
+        function record(canvas, time) {
+            var recordedChunks = [];
+            return new Promise(function (res, rej) {
+                var canvasStream = canvas.captureStream(30 /*fps*/);
+
+                // create new audio destination from our context and pass to worker for recording
+                var audioOut = audioContext.createMediaStreamDestination();
+                audioWorkletNode.connect(audioOut);
+               
+//                console.log(audioOut);
+
+                var audioTracks = audioOut.stream.getAudioTracks();
+//            console.log("rec: audioTracks")
+//            console.log(audioTracks)
+
+                // add the audio tracks (should just be 1) to our canvasStream (capture)
+                audioTracks.forEach((e) => {
+                  console.log("added track: " + e);
+                     canvasStream.addTrack(e);
+                });
+               
+                // now we can create a recorder
+                mediaRecorder = new MediaRecorder(canvasStream, {
+                    mimeType: "video/webm" // ; codecs:vp9"  // TODO: use if/else to detect vp8 or vp9 (https://developers.google.com/web/updates/2016/01/mediarecorder) 
+                });
+                
+                //ondataavailable will fire in interval of `time || 4000 ms`
+                mediaRecorder.start(time || 4000);
+
+                mediaRecorder.ondataavailable = function (event) {
+                    recordedChunks.push(event.data);
+                    console.log("rec: pushed");
+                    console.log(event)
+                     // after stop `dataavilable` event run one more time
+                    if (mediaRecorder.state === 'recording') {
+                        console.log("rec: stopping")
+                        mediaRecorder.stop();
+                    }
+                }
+
+                mediaRecorder.onstop = function (event) {
+                    var blob = new Blob(recordedChunks, {type: "video/webm" });
+                    var url = URL.createObjectURL(blob);
+                    console.log("rec: stopped")
+                    console.log(url)
+                    res(url);
+
+                    // restore audio (FIXME: is this needed??)
+                    audioWorkletNode.connect(audioContext.destination);
+
+                    // download recording automatically
+                    var link = document.createElement("a");
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = 'mov-' + Date.now() + '.webm';
+                    link.click();
+
+                    mediaRecorder = null;
+                }
+
+//              console.log("rec: setup")
+//              console.log(canvasStream);
+            })
+        }
+
+
+        function uiMenuRecord() {
+            uiSaveConfig()
+            if (emuIsGameLoaded) {
+                uiSwitchTo('player')
+
+                if (mediaRecorder == null) {
+                    var rec = record(screenCanvas[1], 30 * 1000) // reords 30s recordedChunks
+
+                    console.log(rec);
+                    console.log(mediaRecorder);
+                } else {
+                    console.log ("rec: stop press");
+                    mediaRecorder.stop();
+                }
+                
+            }
+        }
+
         function uiMenuBack() {
             uiSaveConfig()
             if (emuIsGameLoaded) {
@@ -753,6 +839,7 @@
 
             if (emuIsRunning) {
                 if (config.powerSave) {
+                    // FIXME: this likely has bug in logic that causes stuttering loop
                     if (performance.now() - prevRunFrameTime < 32) {
                         return
                     }
