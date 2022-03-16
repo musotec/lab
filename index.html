@@ -221,32 +221,46 @@
         }
 
         var mediaRecorder;
-        function record(canvas, time) {
+        function record(canvas, time, audio) {
             var recordedChunks = [];
             return new Promise(function (res, rej) {
                 var canvasStream = canvas.captureStream(30 /*fps*/);
 
-                // create new audio destination from our context and pass to worker for recording
-                var audioOut = audioContext.createMediaStreamDestination();
-                audioWorkletNode.connect(audioOut);
-               
-//                console.log(audioOut);
+//                if (audio) {
+                    // create new audio destination from our context and pass to worker for recording
+                    var audioOut = audioContext.createMediaStreamDestination();
+                    audioWorkletNode.connect(audioOut);
+                   
+//                    console.log(audioOut);
 
-                var audioTracks = audioOut.stream.getAudioTracks();
-//            console.log("rec: audioTracks")
-//            console.log(audioTracks)
+                    var audioTracks = audioOut.stream.getAudioTracks();
+//                console.log("rec: audioTracks")
+//                console.log(audioTracks)
 
-                // add the audio tracks (should just be 1) to our canvasStream (capture)
-                audioTracks.forEach((e) => {
-                  console.log("added track: " + e);
-                     canvasStream.addTrack(e);
-                });
-               
-                // now we can create a recorder
-                mediaRecorder = new MediaRecorder(canvasStream, {
-                    mimeType: "video/webm" // ; codecs:vp9"  // TODO: use if/else to detect vp8 or vp9 (https://developers.google.com/web/updates/2016/01/mediarecorder) 
-                });
-                
+                    // add the audio tracks (should just be 1) to our canvasStream (capture)
+                    audioTracks.forEach((e) => {
+                      console.log("added track: " + e);
+                         canvasStream.addTrack(e);
+                    });
+//                }
+
+                var options = null;
+//              if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+//                options = {mimeType: 'video/webm; codecs=vp9'};
+//              } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+//                options = {mimeType: 'video/webm; codecs=vp8'};
+//              }
+
+            //  else {
+            //    options = {mimeType: 'video/webm; codecs:vp9'};
+            //  }
+
+                if (options == null) {
+                    mediaRecorder = new MediaRecorder(canvasStream);
+                } else {
+                    // now we can create a recorder
+                    mediaRecorder = new MediaRecorder(canvasStream, options);
+                } 
                 //ondataavailable will fire in interval of `time || 4000 ms`
                 mediaRecorder.start(time || 4000);
 
@@ -295,7 +309,8 @@
                 uiSwitchTo('player')
 
                 if (mediaRecorder == null) {
-                    var rec = record(screenCanvas[1], 120 * 1000); // records 120s maximum
+                    var audio = true; //MediaRecorder.isTypeSupported('audio/webm'); // true;
+                    var rec = record(screenCanvas[1], 120 * 1000, audio); // records 120s maximum
 
                     handleUrl = (url) => {
                         var a = document.createElement("a");
