@@ -175,7 +175,7 @@
             <hr>
         </div>
         <div id="menu-record">
-            <button onclick="uiMenuRecord()">Record</button>
+            <button onclick="uiMenuRecord()" style="border: 2px red solid; color=#f00;">Record</button>
         </div>
     </div>
     <div id="player" hidden>
@@ -266,19 +266,21 @@
                     var url = URL.createObjectURL(blob);
                     console.log("rec: stopped")
                     console.log(url)
-                    res(url);
+               
 
                     // restore audio (FIXME: is this needed? it's probably good practice...)
                     audioWorkletNode.disconnect(audioOut);
 //                    audioWorkletNode.connect(audioContext.destination); // no need to reconnect default dest if we never disconnected
 
                     // download recording automatically
-                    var link = document.createElement("a");
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = 'mov-' + Date.now() + '.webm';
-                    link.click();
+//                    var link = document.createElement("a");
+             //    link.href = window.URL.createObjectURL(blob);
+              //    link.download = 'mov-' + Date.now() + '.webm';
+              //    link.click();
 
                     mediaRecorder = null;
+
+                    res(url);
                 }
 
 //              console.log("rec: setup")
@@ -293,7 +295,20 @@
                 uiSwitchTo('player')
 
                 if (mediaRecorder == null) {
-                    var rec = record(screenCanvas[1], 120 * 1000) // records 120s maximum
+                    var rec = record(screenCanvas[1], 120 * 1000); // records 120s maximum
+
+                    handleUrl = (url) => {
+                        var a = document.createElement("a");
+                        document.body.appendChild(a);
+                        a.style = 'display: none';
+                        a.href = url;
+                        a.download = 'mov-' + Date.now() + '.webm';
+                        a.click();
+
+                        window.URL.revokeObjectURL(url);
+                    };
+   
+                    rec.then(handleUrl);
 
                     console.log(rec);
                     console.log(mediaRecorder);
