@@ -72,6 +72,7 @@
         }
 
         #menu {
+            padding: 1%;
             position: absolute;
             left: 0;
             top: 0;
@@ -118,7 +119,7 @@
             background-color: rgba(255, 255, 255, 0.75) !important
         }
     </style>
-    <div id="welcome" class="menu">
+    <div id="welcome" class="menu" style="padding:2%;">
       <h1>What is this?</h1>
         <div id="loading">Loading...</div>
         <div id="loadrom" hidden>
@@ -128,6 +129,7 @@
         <hr>
         <div id="passkey">
             <input id="pass" type="text" autofocus>
+            <label for"pass">Answer:</label>
         </div>
         <p><a href="#" onclick="uiSwitchTo('menu')">⚙ Settings...</a></p>
         <div id="ios-hint" hidden>
